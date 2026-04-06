@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fuel Log">
+<meta name="theme-color" content="#0a0a0a">
+<title>Fuel Log</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+--bg:              #0a0a0a;
+--header-bg:       #0d0d0d;
+--surface:         #111111;
+--border:          #1f1f1f;
+--border2:         #2a2a2a;
+--text:            #e8e0d4;
+--text-dim:        #5a5a5a;
+--text-faint:      #2e2e2e;
+--text-meta:       #3a3a3a;
+--accent:          #ff7a1a;
+--accent-hover:    #ff9240;
+--accent-dark:     #c45c0a;
+--accent-dim:      #7a3808;
+--accent-faint:    #1e0e02;
+--btn-text:        #000000;
+--green:           #4ade80;
+--green-bg:        #0d2a15;
+--green-border:    #1a4a25;
+--blue:            #60a5fa;
+--purple:          #c084fc;
+--stop-color:      #60a5fa;
+--fuelstop-color:  #c084fc;
+--input-bg:        #0d0d0d;
+--del-hover-bg:    #3d0a00;
+--del-hover-text:  #f87171;
+--del-hover-border:#7f1d1d;
+--font: 'Courier New', Courier, monospace;
+}
+
+:root.light {
+--bg:              #ffffff;
+--header-bg:       #ffffff;
+--surface:         #f7f7f7;
+--border:          #e0e0e0;
+--border2:         #cccccc;
+--text:            #111111;
+--text-dim:        #777777;
+--text-faint:      #bbbbbb;
+--text-meta:       #999999;
+--accent:          #ff6a00;
+--accent-hover:    #e55d00;
+--accent-dark:     #cc5200;
+--accent-dim:      #ffb380;
+--accent-faint:    #fff3ec;
+--btn-text:        #000000;
+--green:           #16a34a;
+--green-bg:        #f0fdf4;
+--green-border:    #86efac;
+--blue:            #2563eb;
+--purple:          #9333ea;
+--stop-color:      #2563eb;
+--fuelstop-color:  #9333ea;
+--input-bg:        #ffffff;
+--del-hover-bg:    #fff0f0;
+--del-hover-text:  #cc0000;
+--del-hover-border:#ffaaaa;
+--font: 'Courier New', Courier, monospace;
+}
+
+*, *::before, *::after {
+transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+button, input, select { transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s; }
+
+body {
+background: var(--bg);
+color: var(--text);
+font-family: var(--font);
+min-height: 100vh;
+min-height: -webkit-fill-available;
+overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 2px; }
+
+.header {
+background: var(--header-bg);
+border-bottom: 2px solid var(--accent);
+padding: 14px 16px 12px;
+display: flex;
+align-items: center;
+position: sticky;
+top: 0;
+z-index: 100;
+gap: 10px;
+}
+.header-title { flex: 1; }
+.header-eyebrow { font-size: 8px; letter-spacing: 5px; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+.header-name { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: 1px; }
+.header-count { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; }
+
+.theme-toggle {
+background: var(--surface);
+border: 1px solid var(--border2);
+border-radius: 20px;
+padding: 6px 12px;
+font-family: var(--font);
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 1px;
+cursor: pointer;
+color: var(--text-dim);
+-webkit-appearance: none;
+white-space: nowrap;
+flex-shrink: 0;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+.toast { padding: 10px 20px; font-size: 11px; letter-spacing: 2px; text-align: center; display: none; }
+.toast.show { display: block; }
+.toast.ok  { background: var(--green-bg);  color: var(--green);  border-bottom: 1px solid var(--green-border); }
+.toast.err { background: var(--del-hover-bg); color: var(--accent); border-bottom: 1px solid var(--accent-dim); }
+
+.tabs {
+display: flex;
+background: var(--header-bg);
+border-bottom: 1px solid var(--border);
+position: sticky;
+top: 65px;
+z-index: 99;
+}
+.tab-btn {
+flex: 1; padding: 12px 4px; background: transparent; color: var(--text-dim);
+border: none; font-family: var(--font); font-size: 9px; letter-spacing: 2px;
+font-weight: 700; cursor: pointer; -webkit-appearance: none;
+border-bottom: 2px solid transparent;
+}
+.tab-btn:hover { color: var(--accent); }
+.tab-btn.active { background: var(--accent-faint); color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+.content { padding: 20px 16px 100px; max-width: 680px; margin: 0 auto; }
+
+.cat-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.cat-btn {
+flex: 1; padding: 12px 4px; background: var(--surface); color: var(--text-dim);
+border: 1px solid var(--border2); border-radius: 5px; font-family: var(--font);
+font-size: 9px; letter-spacing: 2px; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+}
+.cat-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cat-btn.active-fuel     { background: var(--accent);         color: var(--btn-text); border-color: var(--accent); }
+.cat-btn.active-stop     { background: var(--stop-color);     color: #fff;            border-color: var(--stop-color); }
+.cat-btn.active-fuelstop { background: var(--fuelstop-color); color: #fff;            border-color: var(--fuelstop-color); }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.span2 { grid-column: span 2; }
+.field-label { font-size: 8px; letter-spacing: 3px; color: var(--accent); font-weight: 700; margin-bottom: 5px; opacity: 0.85; }
+
+input, select {
+width: 100%; background: var(--input-bg); border: 1px solid var(--border2);
+border-radius: 5px; padding: 11px 12px; color: var(--text); font-family: var(--font);
+font-size: 14px; outline: none; -webkit-appearance: none; appearance: none;
+}
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-faint); }
+input::placeholder { color: var(--text-faint); }
+select {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6a00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+}
+select option { background: var(--surface); color: var(--text); }
+
+.amount-display {
+width: 100%; background: var(--input-bg); border: 1px solid var(--border2);
+border-radius: 5px; padding: 11px 12px; font-family: var(--font);
+font-size: 14px; font-weight: 700; color: var(--text-faint);
+}
+.amount-display.has-value { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-faint); }
+
+.btn-primary {
+width: 100%; padding: 14px; background: var(--accent); color: var(--btn-text);
+border: none; border-radius: 5px; font-family: var(--font); font-size: 11px;
+letter-spacing: 4px; font-weight: 700; cursor: pointer; margin-top: 18px; -webkit-appearance: none;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-dark); }
+
+.btn-secondary {
+padding: 13px 18px; background: var(--surface); color: var(--text-dim);
+border: 1px solid var(--border2); border-radius: 5px; font-family: var(--font);
+font-size: 10px; letter-spacing: 3px; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+}
+.btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+
+.btn-orange-outline {
+flex: 1; padding: 13px; background: var(--accent-faint); color: var(--accent);
+border: 1px solid var(--accent-dim); border-radius: 5px; font-family: var(--font);
+font-size: 10px; letter-spacing: 3px; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+}
+.btn-orange-outline:hover { border-color: var(--accent); }
+
+.btn-green {
+flex: 1; padding: 13px; background: var(--green-bg); color: var(--green);
+border: 1px solid var(--green-border); border-radius: 5px; font-family: var(--font);
+font-size: 10px; letter-spacing: 3px; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+}
+.btn-green:hover { opacity: 0.85; }
+
+.btn-row { display: flex; gap: 10px; margin-top: 12px; }
+
+.mini-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+.mini-stat { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 10px; border-top: 2px solid var(--accent-dim); }
+.mini-stat-label { font-size: 7px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 4px; }
+.mini-stat-val { font-size: 14px; font-weight: 700; color: var(--text); }
+.mini-stat-val.accent { color: var(--accent); }
+
+.entry-card {
+background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+padding: 13px 14px 10px; margin-bottom: 10px;
+border-left: 3px solid var(--accent);
+}
+.entry-card.cat-stop     { border-left-color: var(--stop-color); }
+.entry-card.cat-fuelstop { border-left-color: var(--fuelstop-color); }
+
+.entry-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.cat-badge { font-size: 7px; font-weight: 700; letter-spacing: 2px; padding: 3px 8px; border-radius: 3px; }
+.badge-fuel     { background: var(--accent);         color: var(--btn-text); }
+.badge-stop     { background: var(--stop-color);     color: #fff; }
+.badge-fuelstop { background: var(--fuelstop-color); color: #fff; }
+
+.entry-meta { font-size: 10px; color: var(--text-meta); flex: 1; }
+
+.entry-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.entry-btn-edit {
+flex: 1; padding: 9px 0; background: var(--accent-faint); color: var(--accent);
+border: 1px solid var(--accent-dim); border-radius: 4px; font-family: var(--font);
+font-size: 9px; letter-spacing: 2px; font-weight: 700; cursor: pointer; -webkit-appearance: none; text-align: center;
+}
+.entry-btn-edit:hover { background: var(--accent); color: var(--btn-text); border-color: var(--accent); }
+.entry-btn-edit:active { transform: scale(0.97); }
+
+.entry-btn-delete {
+padding: 9px 16px; background: transparent; color: var(--text-dim);
+border: 1px solid var(--border2); border-radius: 4px; font-family: var(--font);
+font-size: 9px; letter-spacing: 2px; font-weight: 700; cursor: pointer; -webkit-appearance: none;
+}
+.entry-btn-delete:hover { background: var(--del-hover-bg); color: var(--del-hover-text); border-color: var(--del-hover-border); }
+.entry-btn-delete:active { transform: scale(0.97); }
+
+.entry-location { font-weight: 700; font-size: 15px; margin-bottom: 8px; color: var(--text); }
+.entry-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+.entry-stat-label { font-size: 7px; color: var(--text-dim); letter-spacing: 2px; }
+.entry-stat-val { font-size: 12px; color: var(--text-dim); }
+.entry-stat-val.accent { color: var(--accent); font-weight: 700; }
+.entry-notes { margin-top: 7px; font-size: 11px; color: var(--text-meta); font-style: italic; }
+
+.empty { color: var(--border2); text-align: center; padding: 60px 0; font-size: 12px; letter-spacing: 3px; }
+
+.sec-head {
+font-size: 8px; letter-spacing: 4px; color: var(--accent);
+border-bottom: 1px solid var(--accent-dim); padding-bottom: 6px;
+margin-bottom: 12px; margin-top: 20px; font-weight: 700;
+}
+.sec-head:first-child { margin-top: 0; }
+
+.big-grid   { display: grid; grid-template-columns: 1fr 1fr;         gap: 9px; margin-bottom: 4px; }
+.big-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 9px; margin-bottom: 4px; }
+.big-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 13px 12px 11px; border-top: 2px solid var(--border2); }
+.big-stat-label { font-size: 7px; color: var(--text-dim); letter-spacing: 3px; margin-bottom: 5px; }
+.big-stat-val { font-size: 17px; font-weight: 700; color: var(--text); }
+.big-stat-val.accent { color: var(--accent); }
+
+.route-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 13px; flex-wrap: wrap; }
+.route-from { color: var(--accent); font-weight: 700; }
+.route-arrow { color: var(--border2); }
+.route-to { color: var(--green); font-weight: 700; }
+
+.ex-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 7px; }
+.ex-left { min-width: 105px; }
+.ex-label { font-size: 7px; color: var(--text-dim); letter-spacing: 2px; }
+.ex-val { font-size: 14px; font-weight: 700; }
+.ex-loc { font-size: 12px; color: var(--text-meta); }
+
+.type-row { display: flex; justify-content: space-between; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 5px; font-size: 12px; }
+.type-name { color: var(--text-dim); letter-spacing: 2px; }
+.type-cost { color: var(--accent); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.offline-badge {
+display: none; background: var(--green-bg); border: 1px solid var(--green-border);
+border-radius: 20px; padding: 4px 10px; font-size: 8px; letter-spacing: 2px;
+color: var(--green); font-weight: 700; flex-shrink: 0;
+}
+.offline-badge.show { display: block; }
+
+@media (max-width: 420px) {
+.big-grid-3 { grid-template-columns: 1fr 1fr; }
+.mini-stats { flex-wrap: wrap; }
+.mini-stat { min-width: calc(50% - 4px); }
+.header-name { font-size: 17px; }
+.theme-toggle { font-size: 9px; padding: 5px 9px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <div class="header-eyebrow">ROAD FUEL TRACKER</div>
+    <div class="header-name">TRIP LOG</div>
+  </div>
+  <span class="offline-badge" id="offlineBadge">✓ OFFLINE</span>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀ LIGHT</button>
+  <div style="text-align:right">
+    <div class="header-count" id="headerCount">0 ENTRIES</div>
+    <div id="savedAt" style="font-size:7px;color:var(--text-meta);letter-spacing:1px;margin-top:3px;font-family:var(--font)"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('log')" id="tab-log">+ LOG</button>
+  <button class="tab-btn" onclick="switchTab('entries')" id="tab-entries">ENTRIES</button>
+  <button class="tab-btn" onclick="switchTab('summary')" id="tab-summary">SUMMARY</button>
+</div>
+
+<div class="content">
+
+  <!-- LOG TAB -->
+  <div class="tab-content active" id="content-log">
+
+    <div style="margin-bottom:18px">
+      <div class="field-label">CATEGORY</div>
+      <div class="cat-row">
+        <button class="cat-btn" id="cat-Fuel" onclick="setCategory('Fuel')">FUEL</button>
+        <button class="cat-btn" id="cat-Stop" onclick="setCategory('Stop')">STOP</button>
+        <button class="cat-btn active-fuelstop" id="cat-Fuel/Stop" onclick="setCategory('Fuel/Stop')">FUEL/STOP</button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <div class="field-label">DATE</div>
+        <input type="text" id="f-date" placeholder="DD/MM/YYYY">
+      </div>
+      <div style="position:relative">
+        <div class="field-label">TIME</div>
+        <div style="position:relative">
+          <input type="text" id="f-time" placeholder="HH:MM AM" autocomplete="off" oninput="onTimeType()" style="padding-right:38px">
+          <button onclick="toggleTimePicker()" type="button" style="position:absolute;right:0;top:0;bottom:0;width:36px;background:var(--surface);border:1px solid var(--border2);border-left:none;border-radius:0 5px 5px 0;cursor:pointer;color:var(--accent);font-size:12px;display:flex;align-items:center;justify-content:center;" id="timeArrowBtn">▾</button>
+        </div>
+        <div id="timePicker" style="display:none;position:absolute;z-index:200;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;margin-top:4px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+            <div style="flex:1">
+              <div class="field-label" style="text-align:center;margin-bottom:6px">HOUR</div>
+              <select id="f-hour" onchange="syncTimeFromPicker()" style="text-align:center;padding:10px 4px"></select>
+            </div>
+            <div style="color:var(--accent);font-size:18px;font-weight:700;margin-top:14px">:</div>
+            <div style="flex:1">
+              <div class="field-label" style="text-align:center;margin-bottom:6px">MIN</div>
+              <select id="f-minute" onchange="syncTimeFromPicker()" style="text-align:center;padding:10px 4px"></select>
+            </div>
+            <div style="flex:0 0 64px">
+              <div class="field-label" style="text-align:center;margin-bottom:6px">AM/PM</div>
+              <select id="f-ampm" onchange="syncTimeFromPicker()" style="text-align:center;padding:10px 4px">
+                <option>AM</option>
+                <option>PM</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="toggleTimePicker()" type="button" style="width:100%;margin-top:10px;padding:9px;background:var(--accent);color:var(--btn-text);border:none;border-radius:4px;font-family:var(--font);font-size:9px;letter-spacing:3px;font-weight:700;cursor:pointer">DONE ▸</button>
+        </div>
+      </div>
+      <div class="span2">
+        <div class="field-label">LOCATION *</div>
+        <input type="text" id="f-location" placeholder="e.g. BP Goulburn">
+      </div>
+      <div class="span2">
+        <div class="field-label">ODOMETER READING (km) *</div>
+        <input type="number" id="f-odometer" placeholder="e.g. 229926" inputmode="numeric">
+      </div>
+
+      <div id="fuel-fields" style="display:contents">
+        <div>
+          <div class="field-label">FUEL TYPE</div>
+          <select id="f-fuelType">
+            <option>Diesel</option>
+            <option>Unleaded</option>
+            <option>Premium 95</option>
+            <option>Premium 98</option>
+            <option>E10</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">FUEL LITRES *</div>
+          <input type="number" id="f-litres" placeholder="e.g. 85.4" step="0.01" inputmode="decimal" oninput="updateAmount()">
+        </div>
+        <div>
+          <div class="field-label">$ PER LITRE *</div>
+          <input type="number" id="f-rate" placeholder="e.g. 2.089" step="0.001" inputmode="decimal" oninput="updateAmount()">
+        </div>
+        <div>
+          <div class="field-label">AMOUNT (auto)</div>
+          <div class="amount-display" id="amountDisplay">—</div>
+        </div>
+      </div>
+
+      <div class="span2">
+        <div class="field-label">NOTES</div>
+        <input type="text" id="f-notes" placeholder="optional">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px" id="formBtnRow">
+      <button class="btn-primary" id="submitBtn" onclick="addOrUpdate()">LOG ENTRY ▸</button>
+    </div>
+
+  </div>
+
+  <!-- ENTRIES TAB -->
+  <div class="tab-content" id="content-entries">
+    <div class="mini-stats" id="miniStats" style="display:none">
+      <div class="mini-stat">
+        <div class="mini-stat-label">TOTAL LITRES</div>
+        <div class="mini-stat-val" id="ms-litres">—</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">TOTAL COST</div>
+        <div class="mini-stat-val accent" id="ms-cost">—</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">FUEL STOPS</div>
+        <div class="mini-stat-val" id="ms-stops">—</div>
+      </div>
+    </div>
+    <div id="entriesList"></div>
+    <div class="btn-row" id="entriesActions" style="display:none">
+      <button class="btn-orange-outline" onclick="computeSummary()">SUMMARY ▸</button>
+      <button class="btn-green" onclick="exportCSV()">↓ CSV</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY TAB -->
+  <div class="tab-content" id="content-summary">
+    <div id="summaryContent">
+      <div class="empty">NO SUMMARY YET<br><br>
+        <button class="btn-orange-outline" style="margin-top:12px" onclick="computeSummary()">GENERATE ▸</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Service Worker registration ────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // Show offline badge once SW is active
+    reg.addEventListener('updatefound', () => {});
+    if (reg.active) document.getElementById('offlineBadge').classList.add('show');
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      document.getElementById('offlineBadge').classList.add('show');
+    });
+  }).catch(e => console.warn('SW failed:', e));
+
+  // If SW already controlling, show badge immediately
+  if (navigator.serviceWorker.controller) {
+    document.getElementById('offlineBadge').classList.add('show');
+  }
+}
+
+// ── App state ──────────────────────────────────────────────────────
+let logs = [];
+let editId = null;
+let currentCategory = 'Fuel/Stop';
+let currentSummary = null;
+
+const FUEL_CATS = ['Fuel', 'Fuel/Stop'];
+const STORAGE_KEY = 'fuellog_v1';
+
+function saveLogs() {
+  try {
+    const data = JSON.stringify(logs);
+    localStorage.setItem(STORAGE_KEY, data);
+    localStorage.setItem(STORAGE_KEY + '_backup', data);
+    const ts = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY + '_saved', ts);
+    updateSavedAt(ts);
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function updateSavedAt(ts) {
+  const el = document.getElementById('savedAt');
+  if (!el || !ts) return;
+  try {
+    const d = new Date(ts);
+    el.textContent = 'SAVED ' + d.toLocaleTimeString('en-AU', {hour:'2-digit',minute:'2-digit'});
+  } catch(e) {}
+}
+
+function loadLogs() {
+  try {
+    const primary = localStorage.getItem(STORAGE_KEY);
+    if (primary) { const p = JSON.parse(primary); if (Array.isArray(p)) { logs = p; return; } }
+  } catch(e) {}
+  try {
+    const backup = localStorage.getItem(STORAGE_KEY + '_backup');
+    if (backup) { const b = JSON.parse(backup); if (Array.isArray(b)) { logs = b; return; } }
+  } catch(e) {}
+  logs = [];
+}
+
+(function() {
+  try {
+    if (localStorage.getItem('fuellog_theme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+  } catch(e) {}
+})();
+
+function applyTheme(mode) {
+  const isLight = (mode === 'light');
+  document.documentElement.classList.toggle('light', isLight);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = isLight ? '● DARK MODE' : '☀ LIGHT MODE';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isLight ? '#ffffff' : '#0a0a0a');
+  try { localStorage.setItem('fuellog_theme', mode); } catch(e) {}
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.classList.contains('light') ? 'dark' : 'light');
+}
+
+loadLogs();
+setCategory('Fuel/Stop');
+setDateTimeNow();
+applyTheme(localStorage.getItem('fuellog_theme') || 'dark');
+renderAll();
+
+function buildTimeDropdowns() {
+  const hourSel = document.getElementById('f-hour');
+  const minSel = document.getElementById('f-minute');
+  if (hourSel.options.length === 0) {
+    for (let h = 1; h <= 12; h++) {
+      const o = document.createElement('option');
+      o.value = h;
+      o.textContent = String(h).padStart(2, '0');
+      hourSel.appendChild(o);
+    }
+  }
+  if (minSel.options.length === 0) {
+    for (let m = 0; m < 60; m++) {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = String(m).padStart(2, '0');
+      minSel.appendChild(o);
+    }
+  }
+}
+
+function syncTimeFromPicker() {
+  const h = document.getElementById('f-hour').value;
+  const m = document.getElementById('f-minute').value;
+  const ap = document.getElementById('f-ampm').value;
+  document.getElementById('f-time').value = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ' ' + ap;
+}
+
+function onTimeType() {
+  // Parse typed value and try to sync dropdowns
+  const val = document.getElementById('f-time').value.trim().toUpperCase();
+  const match = val.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/);
+  if (match) {
+    let h = parseInt(match[1]);
+    const m = parseInt(match[2]);
+    const ap = match[3] || (h >= 12 ? 'PM' : 'AM');
+    h = h % 12 || 12;
+    if (h >= 1 && h <= 12 && m >= 0 && m <= 59) {
+      document.getElementById('f-hour').value = h;
+      document.getElementById('f-minute').value = m;
+      document.getElementById('f-ampm').value = ap;
+    }
+  }
+}
+
+function toggleTimePicker() {
+  buildTimeDropdowns();
+  const picker = document.getElementById('timePicker');
+  const open = picker.style.display === 'none';
+  picker.style.display = open ? 'block' : 'none';
+  document.getElementById('timeArrowBtn').textContent = open ? '▴' : '▾';
+}
+
+// Close picker if tapping outside
+document.addEventListener('click', function(e) {
+  const picker = document.getElementById('timePicker');
+  const btn = document.getElementById('timeArrowBtn');
+  const input = document.getElementById('f-time');
+  if (picker && picker.style.display !== 'none') {
+    if (!picker.contains(e.target) && e.target !== btn && e.target !== input) {
+      picker.style.display = 'none';
+      document.getElementById('timeArrowBtn').textContent = '▾';
+    }
+  }
+});
+
+function setDateTimeNow() {
+  const now = new Date();
+  document.getElementById('f-date').value = now.toLocaleDateString('en-AU');
+  buildTimeDropdowns();
+  let h = now.getHours();
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const m = now.getMinutes();
+  document.getElementById('f-hour').value = h;
+  document.getElementById('f-minute').value = m;
+  document.getElementById('f-ampm').value = ap;
+  syncTimeFromPicker();
+}
+
+function setCategory(cat) {
+  currentCategory = cat;
+  ['Fuel','Stop','Fuel/Stop'].forEach(c => {
+    const btn = document.getElementById('cat-' + c);
+    btn.className = 'cat-btn';
+    if (c === cat) {
+      if (c === 'Fuel') btn.classList.add('active-fuel');
+      else if (c === 'Stop') btn.classList.add('active-stop');
+      else btn.classList.add('active-fuelstop');
+    }
+  });
+  const fuelFields = document.getElementById('fuel-fields');
+  const isFuel = FUEL_CATS.includes(cat);
+  Array.from(fuelFields.children).forEach(el => { el.style.display = isFuel ? '' : 'none'; });
+  if (!isFuel) {
+    document.getElementById('f-litres').value = '';
+    document.getElementById('f-rate').value = '';
+    document.getElementById('amountDisplay').textContent = '—';
+    document.getElementById('amountDisplay').classList.remove('has-value');
+  }
+}
+
+function updateAmount() {
+  const l = parseFloat(document.getElementById('f-litres').value);
+  const r = parseFloat(document.getElementById('f-rate').value);
+  const el = document.getElementById('amountDisplay');
+  if (!isNaN(l) && !isNaN(r) && l > 0 && r > 0) {
+    el.textContent = '$' + (l * r).toFixed(2);
+    el.classList.add('has-value');
+  } else {
+    el.textContent = '—';
+    el.classList.remove('has-value');
+  }
+}
+
+function addOrUpdate() {
+  const location = document.getElementById('f-location').value.trim();
+  const odometer = document.getElementById('f-odometer').value;
+  const isFuel = FUEL_CATS.includes(currentCategory);
+  const litres = document.getElementById('f-litres').value;
+  const rate = document.getElementById('f-rate').value;
+
+  if (!location) { showToast('Location required.', false); return; }
+  if (!odometer) { showToast('Odometer required.', false); return; }
+  if (isFuel && (!litres || !rate)) { showToast('Litres and $/L required.', false); return; }
+
+  const fuelLitres = isFuel ? parseFloat(litres) : null;
+  const ratePerL = isFuel ? parseFloat(rate) : null;
+  const amount = isFuel ? parseFloat((fuelLitres * ratePerL).toFixed(2)) : null;
+
+  const entry = {
+    id: editId ?? Date.now(),
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    location,
+    odometer: parseFloat(odometer),
+    category: currentCategory,
+    fuelLitres, ratePerL, amount,
+    fuelType: isFuel ? document.getElementById('f-fuelType').value : null,
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+
+  if (editId) {
+    logs = logs.map(x => x.id === editId ? entry : x);
+    editId = null;
+    showToast('Updated ✓');
+  } else {
+    logs.push(entry);
+    showToast('Logged ✓');
+  }
+
+  saveLogs();
+  currentSummary = null;
+  clearForm();
+  renderAll();
+}
+
+function clearForm() {
+  document.getElementById('f-location').value = '';
+  document.getElementById('f-odometer').value = '';
+  document.getElementById('f-litres').value = '';
+  document.getElementById('f-rate').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('amountDisplay').textContent = '—';
+  document.getElementById('amountDisplay').classList.remove('has-value');
+  setDateTimeNow();
+  setCategory('Fuel/Stop');
+  const cancelBtn = document.getElementById('cancelBtn');
+  if (cancelBtn) cancelBtn.remove();
+  document.getElementById('submitBtn').textContent = 'LOG ENTRY ▸';
+}
+
+function startEdit(id) {
+  const e = logs.find(x => x.id === id);
+  if (!e) return;
+  editId = id;
+  setCategory(e.category);
+  document.getElementById('f-date').value = e.date;
+  // Restore time into text + dropdowns
+  if (e.time) {
+    document.getElementById('f-time').value = e.time;
+    const match = e.time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (match) {
+      let h = parseInt(match[1]);
+      const m = parseInt(match[2]);
+      const ap = (match[3] || (h >= 12 ? 'PM' : 'AM')).toUpperCase();
+      h = h % 12 || 12;
+      buildTimeDropdowns();
+      document.getElementById('f-hour').value = h;
+      document.getElementById('f-minute').value = m;
+      document.getElementById('f-ampm').value = ap;
+    }
+  }
+  document.getElementById('f-location').value = e.location;
+  document.getElementById('f-odometer').value = e.odometer;
+  if (e.fuelLitres != null) document.getElementById('f-litres').value = e.fuelLitres;
+  if (e.ratePerL != null) document.getElementById('f-rate').value = e.ratePerL;
+  if (e.fuelType) document.getElementById('f-fuelType').value = e.fuelType;
+  document.getElementById('f-notes').value = e.notes;
+  updateAmount();
+  document.getElementById('submitBtn').textContent = 'UPDATE ENTRY ▸';
+  if (!document.getElementById('cancelBtn')) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-secondary';
+    btn.id = 'cancelBtn';
+    btn.textContent = 'CANCEL';
+    btn.onclick = () => { editId = null; clearForm(); };
+    document.getElementById('formBtnRow').prepend(btn);
+  }
+  switchTab('log');
+  window.scrollTo(0, 0);
+}
+
+function removeLog(id) {
+  if (!confirm('Delete this entry?')) return;
+  logs = logs.filter(x => x.id !== id);
+  saveLogs();
+  currentSummary = null;
+  renderAll();
+}
+
+function renderAll() {
+  renderHeader();
+  renderEntries();
+}
+
+function renderHeader() {
+  document.getElementById('headerCount').textContent = logs.length + ' ENTRIES';
+  document.getElementById('tab-entries').textContent = 'ENTRIES (' + logs.length + ')';
+  updateSavedAt(localStorage.getItem(STORAGE_KEY + '_saved'));
+}
+
+function renderEntries() {
+  const list = document.getElementById('entriesList');
+  const miniStats = document.getElementById('miniStats');
+  const actions = document.getElementById('entriesActions');
+
+  if (logs.length === 0) {
+    list.innerHTML = '<div class="empty">NO ENTRIES YET</div>';
+    miniStats.style.display = 'none';
+    actions.style.display = 'none';
+    return;
+  }
+
+  const fuelLogs = logs.filter(l => l.fuelLitres != null);
+  const totalL = fuelLogs.reduce((s, l) => s + l.fuelLitres, 0);
+  const totalC = fuelLogs.reduce((s, l) => s + (l.amount ?? 0), 0);
+
+  document.getElementById('ms-litres').textContent = totalL.toFixed(1) + 'L';
+  document.getElementById('ms-cost').textContent = '$' + totalC.toFixed(2);
+  document.getElementById('ms-stops').textContent = fuelLogs.length;
+  miniStats.style.display = 'flex';
+  actions.style.display = logs.length >= 2 ? 'flex' : 'none';
+
+  list.innerHTML = logs.map((l, i) => {
+    const catClass = l.category === 'Stop' ? 'cat-stop' : l.category === 'Fuel/Stop' ? 'cat-fuelstop' : '';
+    const badgeClass = l.category === 'Fuel' ? 'badge-fuel' : l.category === 'Stop' ? 'badge-stop' : 'badge-fuelstop';
+    const statsHtml = [
+      `<div><div class="entry-stat-label">ODOM</div><div class="entry-stat-val">${l.odometer.toLocaleString()} km</div></div>`,
+      l.fuelType ? `<div><div class="entry-stat-label">TYPE</div><div class="entry-stat-val">${l.fuelType}</div></div>` : '',
+      l.ratePerL != null ? `<div><div class="entry-stat-label">$/L</div><div class="entry-stat-val accent">$${l.ratePerL.toFixed(3)}</div></div>` : '',
+      l.fuelLitres != null ? `<div><div class="entry-stat-label">LITRES</div><div class="entry-stat-val">${l.fuelLitres.toFixed(2)}L</div></div>` : '',
+      l.amount != null ? `<div><div class="entry-stat-label">AMOUNT</div><div class="entry-stat-val accent">$${l.amount.toFixed(2)}</div></div>` : '',
+    ].join('');
+    return `
+      <div class="entry-card ${catClass}">
+        <div class="entry-top">
+          <span class="cat-badge ${badgeClass}">${l.category.toUpperCase()}</span>
+          <span class="entry-meta">#${i+1} · ${l.date} ${l.time}</span>
+        </div>
+        <div class="entry-location">${l.location}</div>
+        <div class="entry-stats">${statsHtml}</div>
+        ${l.notes ? `<div class="entry-notes">${l.notes}</div>` : ''}
+        <div class="entry-actions">
+          <button class="entry-btn-edit" onclick="startEdit(${l.id})">✎ EDIT ENTRY</button>
+          <button class="entry-btn-delete" onclick="removeLog(${l.id})">✕ DELETE</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function computeSummary() {
+  if (logs.length < 2) { showToast('Need at least 2 entries.', false); return; }
+  const withOdo = logs.filter(l => l.odometer);
+  const odoStart = Math.min(...withOdo.map(l => l.odometer));
+  const odoEnd = Math.max(...withOdo.map(l => l.odometer));
+  const distKm = odoEnd - odoStart;
+  const fuelLogs = logs.filter(l => l.fuelLitres != null);
+  const totalLitres = fuelLogs.reduce((s, l) => s + l.fuelLitres, 0);
+  const totalCost = fuelLogs.reduce((s, l) => s + (l.amount ?? 0), 0);
+  const avgRate = totalLitres > 0 ? totalCost / totalLitres : 0;
+  const lPer100 = distKm > 0 && totalLitres > 0 ? (totalLitres / distKm) * 100 : 0;
+  const kmPerL = totalLitres > 0 ? distKm / totalLitres : 0;
+  const maxRate = fuelLogs.length ? fuelLogs.reduce((a, b) => a.ratePerL > b.ratePerL ? a : b) : null;
+  const minRate = fuelLogs.length ? fuelLogs.reduce((a, b) => a.ratePerL < b.ratePerL ? a : b) : null;
+  const maxL = fuelLogs.length ? fuelLogs.reduce((a, b) => a.fuelLitres > b.fuelLitres ? a : b) : null;
+  const minL = fuelLogs.length ? fuelLogs.reduce((a, b) => a.fuelLitres < b.fuelLitres ? a : b) : null;
+  const startEntry = withOdo.find(l => l.odometer === odoStart);
+  const endEntry = [...withOdo].reverse().find(l => l.odometer === odoEnd);
+  const byType = {};
+  fuelLogs.forEach(l => {
+    const t = l.fuelType || 'Unknown';
+    if (!byType[t]) byType[t] = { litres: 0, cost: 0 };
+    byType[t].litres += l.fuelLitres;
+    byType[t].cost += l.amount ?? 0;
+  });
+  const stops = logs.filter(l => l.category === 'Stop' || l.category === 'Fuel/Stop').length;
+  currentSummary = { odoStart, odoEnd, distKm, totalLitres, totalCost, avgRate, lPer100, kmPerL, maxRate, minRate, maxL, minL, startEntry, endEntry, byType, stops, fuelStops: fuelLogs.length };
+  renderSummary();
+  switchTab('summary');
+}
+
+function renderSummary() {
+  const s = currentSummary;
+  if (!s) return;
+  const bigGrid = (items) => `<div class="big-grid">${items.map(([l,v,a]) => `<div class="big-stat"><div class="big-stat-label">${l}</div><div class="big-stat-val${a?' accent':''}">${v}</div></div>`).join('')}</div>`;
+  const bigGrid3 = (items) => `<div class="big-grid-3">${items.map(([l,v]) => `<div class="big-stat"><div class="big-stat-label">${l}</div><div class="big-stat-val">${v}</div></div>`).join('')}</div>`;
+  const exRow = (label, val, loc, color) => `<div class="ex-row"><div class="ex-left"><div class="ex-label">${label}</div><div class="ex-val" style="color:${color}">${val}</div></div><div class="ex-loc">${loc}</div></div>`;
+
+  document.getElementById('summaryContent').innerHTML = `
+    <div class="sec-head">ROUTE</div>
+    <div class="route-row">
+      <span class="route-from">${s.startEntry?.location ?? '—'}</span>
+      <span class="route-arrow">→</span>
+      <span class="route-to">${s.endEntry?.location ?? '—'}</span>
+    </div>
+    <div class="sec-head">TRIP STATS</div>
+    ${bigGrid([
+      ['DISTANCE', s.distKm.toFixed(1) + ' km', false],
+      ['TOTAL COST', '$' + s.totalCost.toFixed(2), true],
+      ['TOTAL LITRES', s.totalLitres.toFixed(2) + ' L', false],
+      ['AVG $/L', '$' + s.avgRate.toFixed(3), false],
+      ['L / 100KM', s.lPer100.toFixed(2) + ' L', false],
+      ['KM / LITRE', s.kmPerL.toFixed(2) + ' km', false],
+    ])}
+    <div class="sec-head">ODOMETER</div>
+    ${bigGrid3([
+      ['START', s.odoStart.toLocaleString()],
+      ['END', s.odoEnd.toLocaleString()],
+      ['FUEL STOPS', s.fuelStops],
+      ['ALL STOPS', s.stops],
+    ])}
+    <div class="sec-head">RATE EXTREMES</div>
+    ${exRow('HIGHEST $/L', '$' + (s.maxRate?.ratePerL?.toFixed(3) ?? '—') + '/L', s.maxRate?.location ?? '', '#f97316')}
+    ${exRow('LOWEST $/L', '$' + (s.minRate?.ratePerL?.toFixed(3) ?? '—') + '/L', s.minRate?.location ?? '', '#4ade80')}
+    <div class="sec-head">FILL-UP EXTREMES</div>
+    ${exRow('MOST LITRES', (s.maxL?.fuelLitres?.toFixed(2) ?? '—') + 'L', s.maxL?.location ?? '', '#60a5fa')}
+    ${exRow('FEWEST LITRES', (s.minL?.fuelLitres?.toFixed(2) ?? '—') + 'L', s.minL?.location ?? '', '#c084fc')}
+    <div class="sec-head">FUEL TYPE BREAKDOWN</div>
+    ${Object.entries(s.byType).map(([t, d]) => `
+      <div class="type-row">
+        <span class="type-name">${t.toUpperCase()}</span>
+        <span style="color:#888">${d.litres.toFixed(2)}L</span>
+        <span class="type-cost">$${d.cost.toFixed(2)}</span>
+      </div>`).join('')}
+    <div style="margin-top:20px">
+      <button class="btn-green" style="width:100%" onclick="exportCSV()">↓ EXPORT AS CSV</button>
+    </div>
+  `;
+}
+
+function exportCSV() {
+  if (logs.length === 0) { showToast('No entries to export.', false); return; }
+  const esc = v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const row = cols => cols.map(esc).join(',');
+  const fuelLogs = logs.filter(l => l.fuelLitres != null);
+  const totalL = fuelLogs.reduce((s,l) => s + l.fuelLitres, 0);
+  const totalC = fuelLogs.reduce((s,l) => s + (l.amount ?? 0), 0);
+  const avgRate = totalL > 0 ? totalC / totalL : 0;
+  const headers = ['Date/Time','Location','Odometer Reading (km)','Category','Fuel Type','Fuel Litres','$ Per Litre','Amount ($)','Notes'];
+  const dataRows = logs.map(l => [
+    l.date + (l.time ? ' ' + l.time : ''), l.location, l.odometer, l.category,
+    l.fuelType ?? '', l.fuelLitres != null ? +l.fuelLitres.toFixed(2) : '',
+    l.ratePerL != null ? +l.ratePerL.toFixed(3) : '', l.amount != null ? +l.amount.toFixed(2) : '', l.notes ?? ''
+  ]);
+  const allRows = [headers, ...dataRows, ['','','','','','','','',''], ['TOTALS','','','','', +totalL.toFixed(2), 'Avg $'+avgRate.toFixed(3)+'/L', +totalC.toFixed(2), fuelLogs.length+' fuel stops']];
+  const csv = allRows.map(row).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fuel-log-' + new Date().toLocaleDateString('en-AU').replace(/\//g,'-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported ✓ ' + logs.length + ' entries');
+}
+
+function switchTab(name) {
+  ['log','entries','summary'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('content-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'entries') renderEntries();
+  if (name === 'summary' && currentSummary) renderSummary();
+}
+
+function showToast(msg, ok = true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'toast'; }, 2500);
+}
+</script>
+
+</body>
+</html>
